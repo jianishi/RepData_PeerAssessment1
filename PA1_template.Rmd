@@ -1,25 +1,117 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+##Loading and preprocessing the data
 
+```{r loading}
+setwd("F:/js/R/ReproducibleResearch")
+data<-read.csv("activity.csv")
+```
 
+##Ignore the missing values in the dataset
+##Calculate the total number of steps taken per day
 
-## What is mean total number of steps taken per day?
+```{r }
+datasplit<-split(data,as.factor(data$date))
+total<-sapply(datasplit,function(x) sum(x$steps,na.rm = TRUE))
+dates<-as.Date(names(total))
+datatotal<-data.frame(dates,total,row.names = NULL)
+```
 
+##Make a histogram of the total number of steps taken each day
+##of the total number of steps taken per day
+```{r }
+library(ggplot2)
+plot1<-ggplot(datatotal,aes(x=datatotal$total))
+plot1=plot1+geom_histogram()
+print(plot1)
+```
 
+##Mean and median number of steps taken each day
+```{r}
+meantotalday<-mean(total)
+mediantotalday<-median(total)
+```
 
-## What is the average daily activity pattern?
+##Time series plot of the average number of steps taken
+```{r}
+datainterval<-split(data,as.factor(data$interval))
+meaninterval<-sapply(datainterval,function(x) mean(x$steps,na.rm = TRUE))
+meaninterval<-data.frame(data[1:288,3],meaninterval)
+names(meaninterval)<-c("Intervals","MeanSteps")
+plot2<-ggplot(meaninterval,aes(x=meaninterval$Intervals,y=meaninterval$MeanSteps))
+plot2<-plot2+geom_line()+labs(x="Interval",y="mean steps ")
+print(plot2)
+```
 
+##The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+maxinterval<-which.max(meaninterval$MeanSteps)
+```
 
+##Calculate and report the total number of missing values in the dataset
+```{r}
+missingdata<-sum(!complete.cases(data))
+```
 
-## Imputing missing values
+##Devise a strategy for filling in all of the missing values in the dataset
+```{r}
+d<-data[!complete.cases(data),]$interval
+replacevalue<-as.numeric(sapply(d,function(x)meaninterval[which(meaninterval$Intervals==x),2]))
+```
 
+##Create a new dataset with the missing data filled in.
+```{r}
+setwd("F:/js/R/ReproducibleResearch")
+datanew<-read.csv("activity.csv")
+datanew[!complete.cases(datanew),]$steps<-replacevalue
+```
 
+##Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+datasplit2<-split(datanew,as.factor(datanew$date))
+total2<-sapply(datasplit2,function(x) sum(x$steps,na.rm = TRUE))
+dates2<-as.Date(names(total2))
+datatotal2<-data.frame(dates2,total2,row.names = NULL)
+plot3<-ggplot(datatotal2,aes(x=datatotal2$total2))
+plot3=plot3+geom_histogram()
+print(plot3)
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+##Mean and median number of steps taken each day
+```{r}
+meantotalday2<-mean(total2)
+mediantotalday2<-median(total2)
+```
+
+##Create a new factor variable in the dataset with two level
+```{r}
+datanew$date<-as.Date(datanew$date)
+weekday<-sapply(datanew$date,function(x){
+  if(weekdays(x) %in% c("ÐÇÆÚÁù" ,"ÐÇÆÚÈÕ")) 
+  {y=0}
+  else{y=1}})
+datanew<-data.frame(datanew,weekday)
+```
+
+##Panel plot 
+```{r}
+dataweekday<-split(datanew,as.factor(datanew$weekday))
+datainterval2<-split(dataweekday[[1]],as.factor(dataweekday[[1]]$interval))
+meaninterval2<-sapply(datainterval2,function(x) mean(x$steps,na.rm = TRUE))
+meaninterval2<-data.frame(data[1:288,3],meaninterval2)
+names(meaninterval2)<-c("Intervals","MeanSteps")
+datainterval3<-split(dataweekday[[2]],as.factor(dataweekday[[2]]$interval))
+meaninterval3<-sapply(datainterval3,function(x) mean(x$steps,na.rm = TRUE))
+m<-data.frame(meaninterval2,meaninterval3)
+names(m)<-c("Intervals","MeanStepsOnWeekends","MeanStepsOnWorkdanys")
+par(mfrow=c(2,1),mar=c(2,4,1,1))
+plot(m$Intervals,m$MeanStepsOnWeekends,ylab = "meansteps",type="l",main="weekends")
+plot(m$Intervals,m$MeanStepsOnWorkdanys,ylab = "meansteps",type="l",main="workdays")
+```
